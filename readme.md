@@ -48,16 +48,6 @@ kubectl get pods -n flux-system # Verify source-controller, kustomize-controller
 flux get all # Verify GitRepository, Kustomization ready
 ```
 
-## Check Flux is actually syncing
-```
-mkdir test
-git add .
-git commit -m "test"
-git push
-flux reconcile source git flux-system # Force reconcile
-flux get sources git # Verify Ready=True
-```
-
 ## Install tofu-controller
 ```
 mkdir -p cluster/minikube && touch cluster/minikube/tofu-controller.yaml
@@ -97,6 +87,7 @@ spec:
 git add .
 git commit -m "creating tofu controller"
 git push
+flux reconcile source git flux-system # Force reconcile
 flux get helmreleases -A # Verify tofu-controller created and ready
 kubectl get pods -n flux-system # Verify tofu-controller-<xxxx> running
 ```
