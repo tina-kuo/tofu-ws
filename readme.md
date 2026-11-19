@@ -40,7 +40,7 @@ kubectl config current-context
 kubectl cluster-info 
 ````
 
-## Create GitHub repo
+## Create and clone GitHub repo
 ```
 gh repo create <OWNER>/<REPO> --public
 git clone git@github.com:<OWNER>/<REPO>.git
@@ -58,8 +58,11 @@ flux bootstrap git \
   --private-key-file=<PRIVATE_KEY_PATH> \
   --path=./clusters/minikube
 
-kubectl get pods -n flux-system # Verify source-controller, kustomize-controller, helm-controller, notification-controller running
-flux get all # Verify GitRepository, Kustomization ready
+# Verify source-controller, kustomize-controller, helm-controller, notification-controller running
+kubectl get pods -n flux-system 
+
+# Verify GitRepository, Kustomization ready
+flux get all 
 ```
 
 ## Install tofu-controller
@@ -101,7 +104,9 @@ spec:
 git add .
 git commit -m "creating tofu controller"
 git push
-flux reconcile source git flux-system # Force reconcile
+
+# Force reconcile
+flux reconcile source git flux-system 
 flux reconcile kustomization flux-system
 
 # Verify tofu-controller created and ready
@@ -228,7 +233,7 @@ kubectl get pods -n flux-system
 
 # Verify AWS resource was destroyed
 aws iam get-role --role-name tofu-ctrl-test
-# Should return NoSuchEntity or similar error
+# Should return NoSuchEntity 
 
 # Remove tofu-controller
 mv clusters/minikube/tofu-controller.yaml clusters/minikube/tofu-controller.yaml.bk
