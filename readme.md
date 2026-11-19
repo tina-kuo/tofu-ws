@@ -199,6 +199,9 @@ git add .
 git commit -m "Cleanup workshop"
 git push
 
+flux reconcile source git flux-system
+flux reconcile kustomization flux-system
+
 # Wait for deletion to finish
 kubectl get terraform -n flux-system -w
 kubectl get pods -n flux-system
@@ -208,7 +211,14 @@ aws iam get-role --role-name tofu-ctrl-test
 # Should return NoSuchEntity or similar error
 
 # Remove tofu-controller
-kubectl delete -f clusters/minikube/tofu-controller.yaml
+mv clusters/minikube/tofu-controller.yaml clusters/minikube/tofu-controller.yaml.bk
+
+git add .
+git commit -m "Remove tofu-controller"
+git push
+
+flux reconcile source git flux-system
+flux reconcile kustomization flux-system
 
 # Verify HelmRelease is gone
 flux get helmreleases -A
