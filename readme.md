@@ -21,7 +21,7 @@ OpenTofu
  ↓
 AWS IAM Role
 
-## Create cluster
+## Create local cluster
 ````
 minikube start --wait=all
 minikube update-context
@@ -90,4 +90,139 @@ git push
 flux reconcile source git flux-system # Force reconcile
 flux reconcile kustomization flux-system
 flux get helmreleases -A # Verify tofu-controller created and ready0
+kubectl get crds | grep terraform # Verify CRDs
+```
+
+## Add OpenTofu code and a Terraform resource
+```
+midir infra && touch infra/main.tf
+```
+```
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
+variable "aws_region" {
+  type = string
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+data "aws_iam_policy_document" "this" {
+  statement {
+    actions = ["sts:AssumeRole", "sts:TagSession"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["pods.eks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "this" {
+  name               = "tofu-ctrl-test"
+  assume_role_policy = data.aws_iam_policy_document.this.json
+}
+```
+### Deploy an AWS secret using you local capability credentials (required to already be logged in with go-aws-sso)
+```
+aws_creds="$(aws configure export-credentials --format env-no-export)"
+
+printf '%s\n' "$aws_creds" |
+  kubectl create secret generic aws-credentials \
+    --namespace flux-system  \
+    --from-env-file=/dev/stdin \
+    --dry-run=client -o yaml | kubectl apply -f -
+```
+### Add Terraform resource
+```
+touch clusters/minikube/terraform.yaml
+```
+```
+apiVersion: infra.contrib.fluxcd.io/v1alpha2
+kind: Terraform
+metadata:
+  name: test
+  namespace: flux-system
+spec:
+  approvePlan: "auto"
+  interval: 2m
+  destroyResourcesOnDeletion: true
+  storeReadablePlan: human
+  path: ./infra
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  vars:
+  - name: aws_region
+    value: "eu-west-1"
+  runnerPodTemplate:
+    spec:
+      envFrom:
+        - secretRef:
+            name: aws-credentials
+```
+```
+git add .
+git commit -m "Add OpenTofu code and a Terraform resource"
+git push
+
+# Force reconcile
+flux reconcile source git flux-system 
+flux reconcile kustomization flux-system
+kubectl get terraform -n flux-system 
+# Check Terraform resource
+```
+
+### Verify AWS change
+```
+aws iam get-role --role-name tofu-ctrl-test
+```
+### Check where state is stored
+```
+kubectl get secrets -n flux-system
+```
+
+## Cleanup
+```
+# Delete the Terraform custom resource
+mv clusters/minikube/terraform.yaml clusters/minikube/terraform.yaml.bk
+git add .
+git commit -m "Cleanup workshop"
+git push
+
+# Wait for deletion to finish
+kubectl get terraform -n flux-system -w
+kubectl get pods -n flux-system
+
+# Verify AWS resource was destroyed
+aws iam get-role --role-name tofu-ctrl-test
+# Should return NoSuchEntity or similar error
+
+# Remove tofu-controller
+kubectl delete -f clusters/minikube/tofu-controller.yaml
+
+# Verify HelmRelease is gone
+flux get helmreleases -A
+
+# Verify Terraform CRD is gone (optional)
+kubectl get crds | grep infra.contrib
+```
+### Remove Flux
+```
+flux uninstall
+kubectl get ns flux-system
+```
+### Remove Minikube
+```
+minikube delete
+minikube status
 ```
