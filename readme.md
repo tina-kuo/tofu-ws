@@ -1,16 +1,4 @@
-# Architecture
-
-GitHub Repo
-│
-├── clusters/minikube
-│   ├── gotk-components.yaml
-│   ├── gotk-sync.yaml
-│   ├── tofu-controller.yaml
-│   └── terraform.yaml
-│
-└── infra
-    └── main.tf
-
+```
 Git
  ↓
 Flux
@@ -20,12 +8,33 @@ tofu-controller
 OpenTofu
  ↓
 AWS IAM Role
+```
+## Repository Structure
+```
+.
+├── clusters
+│   └── minikube
+│       ├── flux-system
+│       │   ├── gotk-components.yaml
+│       │   ├── gotk-sync.yaml
+│       │   └── kustomization.yaml
+│       ├── terraform.yaml
+│       └── tofu-controller.yaml
+├── infra
+│   └── main.tf
+└── README.md
+```
 
 ## Create local cluster
 ````
 minikube start --wait=all
 minikube update-context
-kubectl cluster-info # Verify control plane up and running
+
+# Verify Minikube context
+kubectl config current-context
+
+# Verify control plane up and running
+kubectl cluster-info 
 ````
 
 ## Create GitHub repo
@@ -33,7 +42,9 @@ kubectl cluster-info # Verify control plane up and running
 gh repo create <OWNER>/<REPO> --public
 git clone git@github.com:<OWNER>/<REPO>.git
 cd <REPO>
-git remote -v # Verify origin
+
+# Verify origin
+git remote -v 
 ```
 
 ## Flux Bootstrap
@@ -89,13 +100,17 @@ git commit -m "creating tofu controller"
 git push
 flux reconcile source git flux-system # Force reconcile
 flux reconcile kustomization flux-system
-flux get helmreleases -A # Verify tofu-controller created and ready0
-kubectl get crds | grep terraform # Verify CRDs
+
+# Verify tofu-controller created and ready
+flux get helmreleases -A 
+
+# Verify CRDs terraforms.infra.contrib.fluxcd.io
+kubectl get crds | grep terraform 
 ```
 
 ## Add OpenTofu code and a Terraform resource
 ```
-midir infra && touch infra/main.tf
+mkdir -p infra && touch infra/main.tf
 ```
 ```
 terraform {
@@ -133,6 +148,8 @@ resource "aws_iam_role" "this" {
 ```
 ### Deploy an AWS secret using you local capability credentials (required to already be logged in with go-aws-sso)
 ```
+aws sts get-caller-identity
+
 aws_creds="$(aws configure export-credentials --format env-no-export)"
 
 printf '%s\n' "$aws_creds" |
