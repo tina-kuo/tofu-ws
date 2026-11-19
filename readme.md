@@ -50,7 +50,7 @@ flux get all # Verify GitRepository, Kustomization ready
 
 ## Install tofu-controller
 ```
-mkdir -p cluster/minikube && touch cluster/minikube/tofu-controller.yaml
+mkdir -p clusters/minikube && touch clusters/minikube/tofu-controller.yaml
 ```
 ```
 ---
@@ -88,6 +88,6 @@ git add .
 git commit -m "creating tofu controller"
 git push
 flux reconcile source git flux-system # Force reconcile
-flux get helmreleases -A # Verify tofu-controller created and ready
-kubectl get pods -n flux-system # Verify tofu-controller-<xxxx> running
+flux reconcile kustomization flux-system
+flux get helmreleases -A # Verify tofu-controller created and ready0
 ```
