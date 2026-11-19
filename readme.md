@@ -1,3 +1,6 @@
+# Tofu Controller Workshop Notes
+This repository follows the workshop from
+[Tofu Controller Workshop](https://github.com/wcarlsen/tofu-ctrl-workshop/tree/main). The original workshop provides a high-level walkthrough for installing tofu-controller and provisioning AWS resources through Flux and OpenTofu.
 ```
 Git
  ↓
